@@ -117,6 +117,7 @@ template <class LinkType> TPixy<LinkType>::TPixy()
   blockCount = 0;
   blockArraySize = PIXY_INITIAL_ARRAYSIZE;
   blocks = (Block *)malloc(sizeof(Block)*blockArraySize);
+  blockType = NORMAL_BLOCK;
 }
 
 template <class LinkType> TPixy<LinkType>::~TPixy()
