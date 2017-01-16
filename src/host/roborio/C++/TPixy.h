@@ -20,8 +20,8 @@
 #ifndef _TPIXY_H
 #define _TPIXY_H
 
-#include "I2C.h"
 #include "SensorBase.h"
+#include "Timer.h"
 
 // Communication/misc parameters
 #define PIXY_INITIAL_ARRAYSIZE      30
