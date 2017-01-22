@@ -33,7 +33,13 @@
 class LinkI2C
 {
 public:
-  LinkI2C(uint8_t address=PIXY_I2C_DEFAULT_ADDR, I2C::Port port=PIXY_I2C_DEFAULT_PORT): Wire(port, address)
+  LinkI2C(uint8_t address=PIXY_I2C_DEFAULT_ADDR, I2C::Port port):
+    Wire(port, address)
+  {
+
+  }
+  LinkI2C():
+    Wire(PIXY_I2C_DEFAULT_PORT, PIXY_I2C_DEFAULT_ADDR)
   {
 
   }
