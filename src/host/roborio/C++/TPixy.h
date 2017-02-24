@@ -44,231 +44,207 @@
 #define PIXY_RCS_MAX_POS            1000L
 #define PIXY_RCS_CENTER_POS         ((PIXY_RCS_MAX_POS-PIXY_RCS_MIN_POS)/2)
 
- 
+
 enum BlockType
 {
-  NORMAL_BLOCK,
-  CC_BLOCK
+	NORMAL_BLOCK,
+	CC_BLOCK
 };
 
 struct Block 
 {
-  // print block structure!
-  void print()
-  {
-    int i, j;
-    char buf[128], sig[6], d;
-  bool flag;  
-    if (signature>PIXY_MAX_SIGNATURE) // color code! (CC)
-  {
-      // convert signature number to an octal string
-      for (i=12, j=0, flag=false; i>=0; i-=3)
-      {
-        d = (signature>>i)&0x07;
-        if (d>0 && !flag)
-          flag = true;
-        if (flag)
-          sig[j++] = d + '0';
-      }
-      sig[j] = '\0';  
-      sprintf(buf, "CC block! sig: %s (%d decimal) x: %d y: %d width: %d height: %d angle %d\n", sig, signature, x, y, width, height, angle);
-    }     
-  else // regular block.  Note, angle is always zero, so no need to print
-      sprintf(buf, "sig: %d x: %d y: %d width: %d height: %d\n", signature, x, y, width, height);   
-    printf(buf);
-  }
-  uint16_t signature;
-  uint16_t x;
-  uint16_t y;
-  uint16_t width;
-  uint16_t height;
-  uint16_t angle;
+	// print block structure!
+	void print()
+	{
+		int i, j;
+		char buf[128], sig[6], d;
+		bool flag;  
+		if (signature>PIXY_MAX_SIGNATURE) { // color code! (CC)
+			// convert signature number to an octal string
+			for (i=12, j=0, flag=false; i>=0; i-=3) {
+				d = (signature>>i)&0x07;
+				if (d>0 && !flag)
+					flag = true;
+				if (flag)
+					sig[j++] = d + '0';
+			}
+			sig[j] = '\0';  
+			sprintf(buf, "CC block! sig: %s (%d decimal) x: %d y: %d width: %d height: %d angle %d\n", sig, signature, x, y, width, height, angle);
+		}     
+		else // regular block.  Note, angle is always zero, so no need to print
+			sprintf(buf, "sig: %d x: %d y: %d width: %d height: %d\n", signature, x, y, width, height);   
+		printf(buf);
+	}
+	uint16_t signature;
+	uint16_t x;
+	uint16_t y;
+	uint16_t width;
+	uint16_t height;
+	uint16_t angle;
 };
 
 
 
-template <class LinkType> class TPixy
-{
+template <class LinkType> class TPixy {
 public:
-  TPixy(uint16_t arg=PIXY_DEFAULT_ARGVAL);
-  ~TPixy();
-  
-  uint16_t GetBlocks(uint16_t maxBlocks=1000);
-  int8_t SetServos(uint16_t s0, uint16_t s1);
-  int8_t SetBrightness(uint8_t brightness);
-  int8_t SetLED(uint8_t r, uint8_t g, uint8_t b);
-  
-  Block *blocks;
-  
-private:
-  bool GetStart();
-  void Resize();
+	TPixy(uint16_t arg=PIXY_DEFAULT_ARGVAL);
+	~TPixy();
 
-  LinkType link;
-  bool  skipStart;
-  BlockType blockType;
-  uint16_t blockCount;
-  uint16_t blockArraySize;
+	uint16_t GetBlocks(uint16_t maxBlocks=1000);
+	int8_t SetServos(uint16_t s0, uint16_t s1);
+	int8_t SetBrightness(uint8_t brightness);
+	int8_t SetLED(uint8_t r, uint8_t g, uint8_t b);
+
+	Block *blocks;
+
+	private:
+	bool GetStart();
+	void Resize();
+
+	LinkType link;
+	bool  skipStart;
+	BlockType blockType;
+	uint16_t blockCount;
+	uint16_t blockArraySize;
 };
 
 
-template <class LinkType> TPixy<LinkType>::TPixy(uint16_t arg)
-{
-  skipStart = false;
-  blockCount = 0;
-  blockArraySize = PIXY_INITIAL_ARRAYSIZE;
-  blocks = (Block *)malloc(sizeof(Block)*blockArraySize);
-  link.SetArg(arg);
+template <class LinkType> TPixy<LinkType>::TPixy(uint16_t arg) {
+	skipStart = false;
+	blockCount = 0;
+	blockArraySize = PIXY_INITIAL_ARRAYSIZE;
+	blocks = (Block *)malloc(sizeof(Block)*blockArraySize);
+	link.SetArg(arg);
 }
 
-template <class LinkType> TPixy<LinkType>::~TPixy()
-{
-  free(blocks);
+template <class LinkType> TPixy<LinkType>::~TPixy() {
+	free(blocks);
 }
 
-template <class LinkType> bool TPixy<LinkType>::GetStart()
-{
-  uint16_t w, lastw;
- 
-  lastw = 0xffff;
-  
-  while(true)
-  {
-    w = link.getWord();
-    if (w==0 && lastw==0)
-  {
-    frc::Timer* delay = new frc::Timer();
-    delay->Start();
-    while (!delay->HasPeriodPassed(0.00005)) {
-      // Wait 50 microseconds
-    }
+template <class LinkType> bool TPixy<LinkType>::GetStart() {
+	uint16_t w, lastw;
 
-    return false;
-  }   
-    else if (w==PIXY_START_WORD && lastw==PIXY_START_WORD)
-  {
-      blockType = NORMAL_BLOCK;
-      return true;
-  }
-    else if (w==PIXY_START_WORD_CC && lastw==PIXY_START_WORD)
-  {
-      blockType = CC_BLOCK;
-      return true;
-  }
-  else if (w==PIXY_START_WORDX)
-  {
-    printf("reorder");
-    link.getByte(); // resync
-  }
-  lastw = w; 
-  }
+	lastw = 0xffff;
+
+	while(true) {
+		w = link.getWord();
+		if (w==0 && lastw==0) {
+			frc::Timer* delay = new frc::Timer();
+			delay->Start();
+			while (!delay->HasPeriodPassed(0.00005)) { /* Wait 50 microseconds */ }
+			return false;
+		}   
+		else if (w==PIXY_START_WORD && lastw==PIXY_START_WORD) {
+			blockType = NORMAL_BLOCK;
+			return true;
+		}
+		else if (w==PIXY_START_WORD_CC && lastw==PIXY_START_WORD) {
+			blockType = CC_BLOCK;
+			return true;
+		}
+		else if (w==PIXY_START_WORDX) {
+			printf("reorder");
+			link.getByte(); // resync
+		}
+		lastw = w; 
+	}
 }
 
-template <class LinkType> void TPixy<LinkType>::Resize()
-{
-  blockArraySize += PIXY_INITIAL_ARRAYSIZE;
-  blocks = (Block *)realloc(blocks, sizeof(Block)*blockArraySize);
+template <class LinkType> void TPixy<LinkType>::Resize() {
+	blockArraySize += PIXY_INITIAL_ARRAYSIZE;
+	blocks = (Block *)realloc(blocks, sizeof(Block)*blockArraySize);
 }  
-    
-template <class LinkType> uint16_t TPixy<LinkType>::GetBlocks(uint16_t maxBlocks)
-{
-  uint8_t i;
-  uint16_t w, checksum, sum;
-  Block *block;
-  
-  if (!skipStart)
-  {
-    if (GetStart()==false)
-      return 0;
-  }
-  else
-  skipStart = false;
-  
-  for(blockCount=0; blockCount<maxBlocks && blockCount<PIXY_MAXIMUM_ARRAYSIZE;)
-  {
-    checksum = link.getWord();
-    if (checksum==PIXY_START_WORD) // we've reached the beginning of the next frame
-    {
-      skipStart = true;
-    blockType = NORMAL_BLOCK;
-    //Serial.println("skip");
-      return blockCount;
-    }
-  else if (checksum==PIXY_START_WORD_CC)
-  {
-    skipStart = true;
-    blockType = CC_BLOCK;
-    return blockCount;
-  }
-    else if (checksum==0)
-      return blockCount;
-    
-  if (blockCount>blockArraySize)
-    Resize();
-  
-  block = blocks + blockCount;
-  
-    for (i=0, sum=0; i<sizeof(Block)/sizeof(uint16_t); i++)
-    {
-    if (blockType==NORMAL_BLOCK && i>=5) // skip 
-    {
-    block->angle = 0;
-    break;
-    }
-      w = link.getWord();
-      sum += w;
-      *((uint16_t *)block + i) = w;
-    }
+	
+template <class LinkType> uint16_t TPixy<LinkType>::GetBlocks(uint16_t maxBlocks) {
+	uint8_t i;
+	uint16_t w, checksum, sum;
+	Block *block;
 
-    if (checksum==sum)
-      blockCount++;
-    else
-      printf("cs error");
-  
-  w = link.getWord();
-  if (w==PIXY_START_WORD)
-    blockType = NORMAL_BLOCK;
-  else if (w==PIXY_START_WORD_CC)
-    blockType = CC_BLOCK;
-  else
-      return blockCount;
-  }
+	if (!skipStart) {
+		if (GetStart()==false)
+			return 0;
+	}
+	else
+	skipStart = false;
+
+	for(blockCount=0; blockCount<maxBlocks && blockCount<PIXY_MAXIMUM_ARRAYSIZE;) {
+		checksum = link.getWord();
+		if (checksum==PIXY_START_WORD) // we've reached the beginning of the next frame
+		{
+			skipStart = true;
+		blockType = NORMAL_BLOCK;
+		//Serial.println("skip");
+			return blockCount;
+		}
+	else if (checksum==PIXY_START_WORD_CC) {
+		skipStart = true;
+		blockType = CC_BLOCK;
+		return blockCount;
+	}
+		else if (checksum==0)
+			return blockCount;
+		
+	if (blockCount>blockArraySize)
+		Resize();
+
+	block = blocks + blockCount;
+
+	for (i=0, sum=0; i<sizeof(Block)/sizeof(uint16_t); i++) {
+			if (blockType==NORMAL_BLOCK && i>=5) { // skip
+				block->angle = 0;
+				break;
+			}
+			w = link.getWord();
+			sum += w;
+			*((uint16_t *)block + i) = w;
+		}
+
+		if (checksum==sum)
+			blockCount++;
+		else
+			printf("cs error");
+
+		w = link.getWord();
+		if (w==PIXY_START_WORD)
+			blockType = NORMAL_BLOCK;
+		else if (w==PIXY_START_WORD_CC)
+			blockType = CC_BLOCK;
+		else
+			return blockCount;
+	}
 }
 
-template <class LinkType> int8_t TPixy<LinkType>::SetServos(uint16_t s0, uint16_t s1)
-{
-  uint8_t outBuf[6];
-   
-  outBuf[0] = 0x00;
-  outBuf[1] = 0xff; 
-  *(uint16_t *)(outBuf + 2) = s0;
-  *(uint16_t *)(outBuf + 4) = s1;
-  
-  return link.send(outBuf, 6);
+template <class LinkType> int8_t TPixy<LinkType>::SetServos(uint16_t s0, uint16_t s1) {
+	uint8_t outBuf[6];
+	 
+	outBuf[0] = 0x00;
+	outBuf[1] = 0xff; 
+	*(uint16_t *)(outBuf + 2) = s0;
+	*(uint16_t *)(outBuf + 4) = s1;
+
+	return link.send(outBuf, 6);
 }
 
-template <class LinkType> int8_t TPixy<LinkType>::SetBrightness(uint8_t brightness)
-{
-  uint8_t outBuf[3];
-   
-  outBuf[0] = 0x00;
-  outBuf[1] = 0xfe; 
-  outBuf[2] = brightness;
-  
-  return link.send(outBuf, 3);
+template <class LinkType> int8_t TPixy<LinkType>::SetBrightness(uint8_t brightness) {
+	uint8_t outBuf[3];
+	 
+	outBuf[0] = 0x00;
+	outBuf[1] = 0xfe; 
+	outBuf[2] = brightness;
+
+	return link.send(outBuf, 3);
 }
 
-template <class LinkType> int8_t TPixy<LinkType>::SetLED(uint8_t r, uint8_t g, uint8_t b)
-{
-  uint8_t outBuf[5];
-  
-  outBuf[0] = 0x00;
-  outBuf[1] = 0xfd; 
-  outBuf[2] = r;
-  outBuf[3] = g;
-  outBuf[4] = b;
-  
-  return link.send(outBuf, 5);
+template <class LinkType> int8_t TPixy<LinkType>::SetLED(uint8_t r, uint8_t g, uint8_t b) {
+	uint8_t outBuf[5];
+
+	outBuf[0] = 0x00;
+	outBuf[1] = 0xfd; 
+	outBuf[2] = r;
+	outBuf[3] = g;
+	outBuf[4] = b;
+
+	return link.send(outBuf, 5);
 }
 
 #endif
